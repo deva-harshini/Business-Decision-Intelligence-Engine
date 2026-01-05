@@ -139,6 +139,10 @@ else:
 
         st.markdown(text)
         st.divider()
+        st.caption(
+    f"Confidence: {int(item['confidence_score']*100)}% | "
+    f"Valid until: {item['valid_until']}"
+)
 
 # -----------------------------
 # DOWNLOAD REPORT

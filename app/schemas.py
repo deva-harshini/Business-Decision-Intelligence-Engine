@@ -1,10 +1,14 @@
 from pydantic import BaseModel
-from typing import List
+from typing import Dict, List
 
 class Insight(BaseModel):
     date: str
     risk_level: str
+    confidence_score: float
+    valid_until: str
     insight: str
+    audit: Dict
+    generated_at: str
 
 
 class InsightResponse(BaseModel):
