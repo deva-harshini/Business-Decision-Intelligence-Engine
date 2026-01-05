@@ -6,3 +6,5 @@ jupyter
 scikit-learn
 fastapi
 uvicorn
+streamlit
+requests
