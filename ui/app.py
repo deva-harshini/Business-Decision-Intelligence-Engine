@@ -141,8 +141,15 @@ else:
         st.divider()
         st.caption(
     f"Confidence: {int(item['confidence_score']*100)}% | "
-    f"Valid until: {item['valid_until']}"
-)
+    f"Valid until: {item['valid_until']}")
+    st.markdown("**Recommended Actions:**")
+
+    for act in item["recommended_actions"]:
+        st.markdown(
+            f"- 🏷 **{act['team']}** | **{act['priority']} Priority**  \n"
+            f"_{act['action']}_  \n"
+            f"*Impact:* {act['expected_impact']}"
+        )
 
 # -----------------------------
 # DOWNLOAD REPORT

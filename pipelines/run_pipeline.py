@@ -23,6 +23,7 @@ from datetime import datetime
 # ============================================================
 # PROJECT IMPORTS
 # ============================================================
+from src.action_engine import recommend_actions
 from src.kpi_calculator import compute_daily_kpis
 from src.anomaly_detector import detect_anomalies
 from src.forecasting import forecast_kpi
@@ -145,6 +146,7 @@ def main():
             "confidence_score": confidence,
             "valid_until": generate_validity_date(row["date"]),
             "insight": generate_insight(row, baseline),
+            "recommended_actions": recommend_actions,
             "audit": {
                 "baseline_revenue": round(baseline, 2),
                 "z_score": round(row["revenue_zscore"], 2),
