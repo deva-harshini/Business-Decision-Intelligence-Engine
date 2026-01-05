@@ -1,5 +1,5 @@
-date,risk_level,insight
-2011-05-01,HIGH,Revenue showed an abnormal decrease on 2011-05-01 with a z-score of -2.04. Revenue fell below historical baseline levels. 
-2011-05-12,HIGH,Revenue showed an abnormal increase on 2011-05-12 with a z-score of 2.12. 
-2011-07-28,HIGH,Revenue showed an abnormal increase on 2011-07-28 with a z-score of 2.07. 
-2011-12-09,HIGH,Revenue showed an abnormal increase on 2011-12-09 with a z-score of 2.18. 
+date,risk_level,insight,generated_at
+2011-05-01,HIGH,Revenue showed an abnormal decrease on 2011-05-01 with a z-score of -2.04. Revenue fell below historical baseline levels. ,2026-01-05T17:48:51.276676
+2011-05-12,HIGH,Revenue showed an abnormal increase on 2011-05-12 with a z-score of 2.12. ,2026-01-05T17:48:51.276676
+2011-07-28,HIGH,Revenue showed an abnormal increase on 2011-07-28 with a z-score of 2.07. ,2026-01-05T17:48:51.276676
+2011-12-09,HIGH,Revenue showed an abnormal increase on 2011-12-09 with a z-score of 2.18. ,2026-01-05T17:48:51.276676
