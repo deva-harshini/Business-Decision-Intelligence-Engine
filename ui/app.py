@@ -68,8 +68,7 @@ st.divider()
 def fetch_insights():
     response = requests.get(f"{API_BASE_URL}/insights", timeout=5)
     response.raise_for_status()
-    return response.json()["insights"]
-
+    return response.json()
 @st.cache_data(show_spinner=False)
 def fetch_kpis():
     response = requests.get(f"{API_BASE_URL}/kpis", timeout=5)

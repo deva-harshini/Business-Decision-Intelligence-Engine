@@ -1,11 +1,14 @@
 """
 Production Pipeline Script
 Business Decision Intelligence Engine
-Runs end-to-end KPI → Anomaly → Forecast → Insight workflow
+
+Runs end-to-end:
+Raw Data → KPIs → Anomaly Detection → Forecasting
+→ Confidence + Audit → Business Action Recommendations
 """
 
 # ============================================================
-# PATH SETUP (CRITICAL – DO NOT REMOVE)
+# PATH SETUP (CRITICAL)
 # ============================================================
 import sys
 import os
@@ -23,7 +26,6 @@ from datetime import datetime
 # ============================================================
 # PROJECT IMPORTS
 # ============================================================
-from src.action_engine import recommend_actions
 from src.kpi_calculator import compute_daily_kpis
 from src.anomaly_detector import detect_anomalies
 from src.forecasting import forecast_kpi
@@ -33,6 +35,7 @@ from src.insight_engine import (
     compute_confidence,
     generate_validity_date
 )
+from src.action_engine import recommend_actions
 
 # ============================================================
 # CONFIGURATION
@@ -51,7 +54,7 @@ Z_THRESHOLD = 2
 FORECAST_DAYS = 14
 
 # ============================================================
-# UTILS
+# UTILITIES
 # ============================================================
 def ensure_directories():
     os.makedirs("data/processed", exist_ok=True)
@@ -87,7 +90,7 @@ def main():
     df.to_csv(CLEAN_DATA_PATH, index=False)
 
     # --------------------------------------------------------
-    # 3. COMPUTE KPIs
+    # 3. COMPUTE DAILY KPIs
     # --------------------------------------------------------
     print("📊 Computing daily KPIs...")
     daily_kpis = compute_daily_kpis(df)
@@ -123,33 +126,42 @@ def main():
     forecast_df.to_csv(FORECAST_PATH, index=False)
 
     # --------------------------------------------------------
-    # 6. DECISION INSIGHTS (CONFIDENCE + AUDIT)
+    # 6. DECISION INSIGHTS (CONFIDENCE + ACTIONS)
     # --------------------------------------------------------
-    print("🧠 Generating decision insights with confidence & audit trail...")
+    print("🧠 Generating decision insights with confidence & actions...")
 
-    baseline = daily_kpis["revenue"].mean()
-    volatility = daily_kpis["revenue"].std()
+    baseline = float(daily_kpis["revenue"].mean())
+    volatility = float(daily_kpis["revenue"].std())
 
     insights = []
 
     for _, row in incidents.iterrows():
+        z_score = float(row["revenue_zscore"])
         future_risk = forecast_df["lower"].min() < baseline * 0.9
 
+        risk_level = classify_risk(z_score, future_risk)
+
         confidence = compute_confidence(
-            z_score=row["revenue_zscore"],
+            z_score=z_score,
             volatility=volatility
+        )
+
+        actions = recommend_actions(
+            risk_level=risk_level,
+            z_score=z_score,
+            forecast_risk=future_risk
         )
 
         insights.append({
             "date": row["date"],
-            "risk_level": classify_risk(row["revenue_zscore"], future_risk),
+            "risk_level": risk_level,
             "confidence_score": confidence,
             "valid_until": generate_validity_date(row["date"]),
             "insight": generate_insight(row, baseline),
-            "recommended_actions": recommend_actions,
+            "recommended_actions": actions,
             "audit": {
                 "baseline_revenue": round(baseline, 2),
-                "z_score": round(row["revenue_zscore"], 2),
+                "z_score": round(z_score, 2),
                 "rolling_window_days": WINDOW,
                 "forecast_horizon_days": FORECAST_DAYS
             },
