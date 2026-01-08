@@ -6,7 +6,7 @@ import io
 # -----------------------------
 # CONFIGURATION
 # -----------------------------
-API_BASE_URL = "http://127.0.0.1:8000"  # change to Render URL after deployment
+API_BASE_URL =  "https://business-decision-intelligence-engine.onrender.com"
 
 st.set_page_config(
     page_title="Business Decision Intelligence Engine",

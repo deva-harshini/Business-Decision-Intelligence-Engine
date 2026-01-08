@@ -99,3 +99,7 @@ def root():
         "health": "/health",
         "insights": "/insights"
     }
+@app.get("/kpis")
+def get_kpis():
+    df = load_insights()
+    return df[["date", "risk_level", "confidence_score"]].to_dict(orient="records")
