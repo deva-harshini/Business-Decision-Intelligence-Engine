@@ -165,6 +165,16 @@ The executive dashboard opens automatically in your browser.
 
 ---
 
+### 🔐 Demo Authentication
+
+This application includes a simple admin login for demonstration purposes only.
+
+- Default Admin Password: `admin123`
+- This is a mock authentication layer to demonstrate role-based access
+- Not intended for production use
+
+---
+
 ## 📊 Executive Dashboard Features
 KPI trend visualization
 
