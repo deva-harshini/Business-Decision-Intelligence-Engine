@@ -31,3 +31,23 @@ def generate_insight(row, baseline):
 
 def generate_validity_date(incident_date, days=2):
     return (incident_date + timedelta(days=days)).date()
+
+
+
+def generate_business_insights(data):
+    insights = []
+
+    avg_revenue = data['revenue'].mean()
+    recent_revenue = data['revenue'].tail(7).mean()
+
+    if recent_revenue < avg_revenue * 0.9:
+        insights.append("Recent revenue shows a declining trend compared to baseline")
+
+    if data['revenue'].std() > avg_revenue * 0.5:
+        insights.append("Revenue is highly volatile indicating unstable performance")
+
+    if data['revenue'].max() > avg_revenue * 2:
+        insights.append("Sudden revenue spike detected — possible seasonal or campaign effect")
+
+    return insights
+

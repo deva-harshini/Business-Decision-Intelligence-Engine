@@ -4,9 +4,9 @@ import pandas as pd
 import io
 
 # -----------------------------
-# CONFIGURATION
+# CONFIG
 # -----------------------------
-API_BASE_URL =  "https://business-decision-intelligence-engine.onrender.com"
+API_BASE_URL = "https://business-decision-intelligence-engine.onrender.com"
 
 st.set_page_config(
     page_title="Business Decision Intelligence Engine",
@@ -14,7 +14,7 @@ st.set_page_config(
 )
 
 # -----------------------------
-# SIMPLE AUTHENTICATION
+# AUTH
 # -----------------------------
 def check_password():
     def password_entered():
@@ -24,21 +24,11 @@ def check_password():
             st.session_state["authenticated"] = False
 
     if "authenticated" not in st.session_state:
-        st.text_input(
-            "🔐 Enter Password",
-            type="password",
-            on_change=password_entered,
-            key="password"
-        )
+        st.text_input("🔐 Enter Password", type="password", on_change=password_entered, key="password")
         return False
 
     if not st.session_state["authenticated"]:
-        st.text_input(
-            "🔐 Enter Password",
-            type="password",
-            on_change=password_entered,
-            key="password"
-        )
+        st.text_input("🔐 Enter Password", type="password", on_change=password_entered, key="password")
         st.error("❌ Incorrect password")
         return False
 
@@ -52,122 +42,99 @@ if not check_password():
 # HEADER
 # -----------------------------
 st.title("📊 Business Decision Intelligence Engine")
-st.markdown(
-    """
-    **Executive dashboard for KPI monitoring, anomaly detection, forecasting,  
-    and automated business decision insights.**
-    """
-)
-
+st.markdown("Executive dashboard for KPI monitoring, anomaly detection, forecasting, and automated business insights.")
 st.divider()
 
 # -----------------------------
-# FETCH FUNCTIONS
+# FETCH DATA
 # -----------------------------
-@st.cache_data(show_spinner=False)
-def fetch_insights():
-    response = requests.get(f"{API_BASE_URL}/insights", timeout=5)
-    response.raise_for_status()
-    return response.json()
-@st.cache_data(show_spinner=False)
+@st.cache_data
 def fetch_kpis():
-    response = requests.get(f"{API_BASE_URL}/kpis", timeout=5)
-    response.raise_for_status()
-    return pd.DataFrame(response.json())
+    res = requests.get(f"{API_BASE_URL}/kpis")
+    res.raise_for_status()
+    return pd.DataFrame(res.json())
 
-# -----------------------------
-# LOAD DATA
-# -----------------------------
+@st.cache_data
+def fetch_insights():
+    res = requests.get(f"{API_BASE_URL}/insights")
+    res.raise_for_status()
+    return res.json()
+
 try:
-    with st.spinner("Loading KPI data..."):
-        kpi_df = fetch_kpis()
-        insights = fetch_insights()
-except requests.exceptions.RequestException as e:
-    st.error("❌ Could not connect to FastAPI backend")
-    st.code(str(e))
+    kpi_df = fetch_kpis()
+    insights = fetch_insights()
+except:
+    st.error("❌ Backend not reachable")
     st.stop()
 
 # -----------------------------
-# KPI TREND CHARTS
+# KPI CHART
 # -----------------------------
 st.subheader("📈 KPI Trends")
 
 kpi_df["date"] = pd.to_datetime(kpi_df["date"])
 kpi_df = kpi_df.sort_values("date")
 
-st.line_chart(
-    kpi_df.set_index("date")[["revenue", "orders", "customers"]]
-)
+st.line_chart(kpi_df.set_index("date")[["revenue", "orders", "customers"]])
 
 st.divider()
 
 # -----------------------------
-# RISK FILTERS
+# FILTERS
 # -----------------------------
-st.sidebar.header("🔎 Filters")
-
 risk_filter = st.sidebar.multiselect(
-    "Select Risk Level",
-    options=["HIGH", "MEDIUM", "LOW"],
+    "Risk Level",
+    ["HIGH", "MEDIUM", "LOW"],
     default=["HIGH", "MEDIUM"]
 )
 
 # -----------------------------
-# DISPLAY INSIGHTS
+# INSIGHTS
 # -----------------------------
-st.subheader("🚨 Business Decision Insights")
+st.subheader("🚨 Decision Insights")
 
-filtered_insights = [
-    i for i in insights if i["risk_level"] in risk_filter
-]
+filtered = [i for i in insights if i["risk_level"] in risk_filter]
 
-if not filtered_insights:
-    st.info("No insights match the selected filters.")
+if not filtered:
+    st.info("No insights available")
 else:
-    for item in filtered_insights:
-        risk = item["risk_level"]
-        date = item["date"]
-        text = item["insight"]
-
-        if risk == "HIGH":
-            st.error(f"🔴 HIGH RISK — {date}")
-        elif risk == "MEDIUM":
-            st.warning(f"🟠 MEDIUM RISK — {date}")
+    for item in filtered:
+        if item["risk_level"] == "HIGH":
+            st.error(f"{item['date']} - HIGH RISK")
+        elif item["risk_level"] == "MEDIUM":
+            st.warning(f"{item['date']} - MEDIUM RISK")
         else:
-            st.success(f"🟢 LOW RISK — {date}")
+            st.success(f"{item['date']} - LOW RISK")
 
-        st.markdown(text)
-        st.divider()
+        st.write(item["insight"])
+
         st.caption(
-    f"Confidence: {int(item['confidence_score']*100)}% | "
-    f"Valid until: {item['valid_until']}")
-    st.markdown("**Recommended Actions:**")
-
-    for act in item["recommended_actions"]:
-        st.markdown(
-            f"- 🏷 **{act['team']}** | **{act['priority']} Priority**  \n"
-            f"_{act['action']}_  \n"
-            f"*Impact:* {act['expected_impact']}"
+            f"Confidence: {int(item['confidence_score']*100)}% | "
+            f"Valid until: {item['valid_until']}"
         )
 
-# -----------------------------
-# DOWNLOAD REPORT
-# -----------------------------
-st.subheader("📥 Download Reports")
+        st.markdown("**Recommended Actions:**")
+        for act in item["recommended_actions"]:
+            st.markdown(
+                f"- **{act['team']}** ({act['priority']}) → {act['action']}  \n"
+                f"_{act['expected_impact']}_"
+            )
 
-csv_buffer = io.StringIO()
-pd.DataFrame(filtered_insights).to_csv(csv_buffer, index=False)
+        st.divider()
+
+# -----------------------------
+# DOWNLOAD
+# -----------------------------
+csv = pd.DataFrame(filtered).to_csv(index=False)
 
 st.download_button(
-    label="Download Decision Insights (CSV)",
-    data=csv_buffer.getvalue(),
-    file_name="decision_insights.csv",
-    mime="text/csv"
+    "Download Insights CSV",
+    csv,
+    "insights.csv",
+    "text/csv"
 )
 
 # -----------------------------
 # FOOTER
 # -----------------------------
-st.caption(
-    "Business Decision Intelligence Engine | Python • FastAPI • Streamlit • Analytics"
-)
+st.caption("Built with Python • FastAPI • Streamlit")

@@ -8,7 +8,7 @@ Raw Data → KPIs → Anomaly Detection → Forecasting
 """
 
 # ============================================================
-# PATH SETUP (CRITICAL)
+# PATH SETUP
 # ============================================================
 import sys
 import os
@@ -33,7 +33,8 @@ from src.insight_engine import (
     classify_risk,
     generate_insight,
     compute_confidence,
-    generate_validity_date
+    generate_validity_date,
+    generate_business_insights
 )
 from src.action_engine import recommend_actions
 
@@ -67,18 +68,23 @@ def main():
     print("🚀 Starting Business Decision Intelligence Pipeline")
     print(f"🕒 Run time: {datetime.now().isoformat()}")
 
+    print("Step 1: Loading data...")
+    print("Step 2: Cleaning data...")
+    print("Step 3: Computing KPIs...")
+    print("Step 4: Detecting anomalies...")
+    print("Step 5: Forecasting trends...")
+    print("Step 6: Generating insights & actions...")
+
     ensure_directories()
 
     # --------------------------------------------------------
     # 1. LOAD RAW DATA
     # --------------------------------------------------------
-    print("📥 Loading raw data...")
     df = pd.read_csv(RAW_DATA_PATH, encoding="ISO-8859-1")
 
     # --------------------------------------------------------
     # 2. CLEAN DATA
     # --------------------------------------------------------
-    print("🧹 Cleaning data...")
     df = df.dropna(subset=["CustomerID"])
     df = df[(df["Quantity"] > 0) & (df["UnitPrice"] > 0)]
 
@@ -92,14 +98,12 @@ def main():
     # --------------------------------------------------------
     # 3. COMPUTE DAILY KPIs
     # --------------------------------------------------------
-    print("📊 Computing daily KPIs...")
     daily_kpis = compute_daily_kpis(df)
     daily_kpis.to_csv(KPI_PATH, index=False)
 
     # --------------------------------------------------------
     # 4. ANOMALY DETECTION
     # --------------------------------------------------------
-    print("🚨 Detecting revenue anomalies...")
     daily_kpis = detect_anomalies(
         daily_kpis,
         value_col="revenue",
@@ -116,7 +120,6 @@ def main():
     # --------------------------------------------------------
     # 5. FORECASTING
     # --------------------------------------------------------
-    print("📈 Forecasting revenue risk...")
     forecast_df = forecast_kpi(
         daily_kpis,
         value_col="revenue",
@@ -126,12 +129,13 @@ def main():
     forecast_df.to_csv(FORECAST_PATH, index=False)
 
     # --------------------------------------------------------
-    # 6. DECISION INSIGHTS (CONFIDENCE + ACTIONS)
+    # 6. DECISION INTELLIGENCE
     # --------------------------------------------------------
-    print("🧠 Generating decision insights with confidence & actions...")
-
     baseline = float(daily_kpis["revenue"].mean())
     volatility = float(daily_kpis["revenue"].std())
+
+    # NEW: global business insights
+    global_insights = generate_business_insights(daily_kpis)
 
     insights = []
 
@@ -149,7 +153,8 @@ def main():
         actions = recommend_actions(
             risk_level=risk_level,
             z_score=z_score,
-            forecast_risk=future_risk
+            forecast_risk=future_risk,
+            insights=global_insights
         )
 
         insights.append({
@@ -159,6 +164,7 @@ def main():
             "valid_until": generate_validity_date(row["date"]),
             "insight": generate_insight(row, baseline),
             "recommended_actions": actions,
+            "global_insights": global_insights,
             "audit": {
                 "baseline_revenue": round(baseline, 2),
                 "z_score": round(z_score, 2),

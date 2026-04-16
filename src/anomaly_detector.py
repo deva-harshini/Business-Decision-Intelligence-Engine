@@ -13,19 +13,14 @@ def detect_anomalies(
     z_col = f"{value_col}_zscore"
     flag_col = f"{value_col}_anomaly"
 
-    df[mean_col] = (
-        df[value_col]
-        .rolling(window, min_periods=window)
-        .mean()
-    )
-
-    df[std_col] = (
-        df[value_col]
-        .rolling(window, min_periods=window)
-        .std()
-    )
+    df[mean_col] = df[value_col].rolling(window, min_periods=window).mean()
+    df[std_col] = df[value_col].rolling(window, min_periods=window).std()
 
     df[z_col] = (df[value_col] - df[mean_col]) / df[std_col]
     df[flag_col] = df[z_col].abs() > z_threshold
+
+    # Handle NaNs
+    df[z_col] = df[z_col].fillna(0)
+    df[flag_col] = df[flag_col].fillna(False)
 
     return df

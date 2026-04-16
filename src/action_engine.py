@@ -1,59 +1,55 @@
-def recommend_actions(risk_level, z_score, forecast_risk):
-    """
-    Maps detected risk patterns to concrete business actions
-    """
-
+def recommend_actions(risk_level, z_score, forecast_risk, insights=None):
     actions = []
 
-    # -----------------------------
-    # Revenue Drop Scenarios
-    # -----------------------------
     if z_score < -2:
         actions.append({
             "team": "Marketing",
-            "action": "Analyze conversion funnel and recent campaign performance",
+            "action": "Analyze conversion funnel and campaign performance",
             "priority": "HIGH",
-            "expected_impact": "Recover lost conversions and stabilize revenue"
+            "expected_impact": "Recover lost revenue"
         })
 
-        actions.append({
-            "team": "Product",
-            "action": "Check website/app errors, checkout failures, and UX regressions",
-            "priority": "HIGH",
-            "expected_impact": "Prevent technical revenue leakage"
-        })
-
-    # -----------------------------
-    # Revenue Spike Scenarios
-    # -----------------------------
     if z_score > 2:
         actions.append({
             "team": "Operations",
-            "action": "Ensure inventory and fulfillment capacity can handle demand",
+            "action": "Ensure inventory and fulfillment readiness",
             "priority": "MEDIUM",
-            "expected_impact": "Avoid stockouts and delivery delays"
+            "expected_impact": "Avoid stockouts"
         })
 
-    # -----------------------------
-    # Forecast Risk
-    # -----------------------------
     if forecast_risk:
         actions.append({
             "team": "Finance",
-            "action": "Re-evaluate short-term revenue projections and cash planning",
+            "action": "Adjust revenue forecasts and budgets",
             "priority": "HIGH",
-            "expected_impact": "Reduce financial planning risk"
+            "expected_impact": "Reduce financial risk"
         })
 
-    # -----------------------------
-    # Default Safety Net
-    # -----------------------------
+    # 🔥 NEW: Insight-driven actions
+    if insights:
+        for ins in insights:
+            if "declining" in ins:
+                actions.append({
+                    "team": "Marketing",
+                    "action": "Run targeted campaigns",
+                    "priority": "HIGH",
+                    "expected_impact": "Boost revenue"
+                })
+
+            if "volatile" in ins:
+                actions.append({
+                    "team": "Analytics",
+                    "action": "Investigate revenue fluctuations",
+                    "priority": "MEDIUM",
+                    "expected_impact": "Stabilize performance"
+                })
+
     if not actions:
         actions.append({
             "team": "Analytics",
-            "action": "Continue monitoring KPIs for stability",
+            "action": "Monitor KPIs",
             "priority": "LOW",
-            "expected_impact": "Ensure sustained performance"
+            "expected_impact": "Maintain stability"
         })
 
     return actions
