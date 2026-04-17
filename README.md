@@ -2,7 +2,6 @@
 
 🚀 A full-stack data science system that transforms raw business data into actionable insights, risk alerts, and decision recommendations through an automated analytics pipeline and interactive dashboard.
 
----
 
 ## 🔍 Overview
 
@@ -15,7 +14,6 @@ This project combines:
 - ⚙️ Backend API (FastAPI)  
 - 📊 Interactive Dashboard (Streamlit)  
 
----
 
 ## 🎯 Problem Statement
 
@@ -28,7 +26,6 @@ Businesses generate large volumes of data daily but often struggle to:
 
 This system solves that by creating a **decision intelligence pipeline** that automates the entire process.
 
----
 
 ## 💡 Key Features
 
@@ -57,14 +54,11 @@ This system solves that by creating a **decision intelligence pipeline** that au
   - Risk insights
   - Recommended actions
 
----
 
 ## 🏗️ System Architecture
 Raw Data → Data Cleaning → KPI Calculation → Anomaly Detection
 → Forecasting → Insight Engine → Action Engine → API → Dashboard
 
-
----
 
 ## 🧠 Tech Stack
 
@@ -78,10 +72,8 @@ Raw Data → Data Cleaning → KPI Calculation → Anomaly Detection
 | Deployment | Render, Streamlit Cloud |
 | Version Control | Git, GitHub |
 
----
 
-## 📂 Project Structure
-
+## 📁 Project Structure
 
 Business-Decision-Intelligence-Engine/
 │
@@ -91,18 +83,16 @@ Business-Decision-Intelligence-Engine/
 ├── pipelines/ # End-to-end data pipeline
 ├── data/ # Raw + processed data
 ├── notebooks/ # Analysis notebooks
+│
 ├── requirements.txt
 └── README.md
 
-
----
 
 ## 🚀 Live Demo
 
 **Dashboard:**  
 https://business-decision-intelligence-engine.streamlit.app/
 
----
 
 ## ⚙️ How to Run Locally
 
@@ -131,7 +121,6 @@ uvicorn app.main:app --reload
 ```bash
 streamlit run ui/app.py
 ```
----
 
 ## 📈 Key Highlights
 - Built an end-to-end data system, not just a model
@@ -139,7 +128,6 @@ streamlit run ui/app.py
 - Focuses on business impact, not just accuracy
 - Designed for real-world decision-making
 
----
 
 ## 👩‍💻 Author
 
