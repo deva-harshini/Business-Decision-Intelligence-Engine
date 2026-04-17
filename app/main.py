@@ -7,7 +7,7 @@ import tempfile
 
 app = FastAPI(
     title="Business Decision Intelligence API",
-    version="2.0.0"
+    version="2.1.0"
 )
 
 app.add_middleware(
@@ -46,9 +46,6 @@ def load_insights():
 
     if "recommended_actions" in df.columns:
         df["recommended_actions"] = df["recommended_actions"].apply(safe_parse)
-
-    if "global_insights" in df.columns:
-        df["global_insights"] = df["global_insights"].apply(safe_parse)
 
     return df
 
@@ -100,7 +97,7 @@ def get_kpis():
 
 
 # -----------------------------
-# 🔥 NEW: UPLOAD DATASET
+# 🔥 UPLOAD DATASET (FIXED)
 # -----------------------------
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
@@ -113,35 +110,37 @@ async def upload_file(file: UploadFile = File(...)):
         df = pd.read_csv(temp.name)
 
         # -----------------------------
-        # AUTO DETECT DATE COLUMN
+        # SAFE DATE DETECTION
         # -----------------------------
         date_col = None
+
         for col in df.columns:
-            try:
-                df[col] = pd.to_datetime(df[col])
-                date_col = col
-                break
-            except:
-                continue
+            if "date" in col.lower():
+                try:
+                    df[col] = pd.to_datetime(df[col])
+                    date_col = col
+                    break
+                except:
+                    continue
 
         if date_col is None:
-            return {"error": "No date column found in dataset"}
+            return {"error": "No valid date column found (column should contain 'date')"}
 
-        df["date"] = pd.to_datetime(df[date_col])
+        df["date"] = df[date_col]
 
         # -----------------------------
-        # AUTO CREATE REVENUE
+        # SAFE REVENUE CREATION
         # -----------------------------
         numeric_cols = df.select_dtypes(include="number").columns
 
         if len(numeric_cols) == 0:
-            return {"error": "No numeric columns found"}
+            return {"error": "No numeric columns found in dataset"}
 
         if "revenue" not in df.columns:
             df["revenue"] = df[numeric_cols].sum(axis=1)
 
         # -----------------------------
-        # PIPELINE LOGIC
+        # PIPELINE
         # -----------------------------
         from src.kpi_calculator import compute_daily_kpis
         from src.anomaly_detector import detect_anomalies
