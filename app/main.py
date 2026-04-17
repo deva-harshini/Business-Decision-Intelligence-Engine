@@ -104,18 +104,24 @@ def get_kpis():
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     try:
+        contents = await file.read()
+
+        # ✅ Allow ANY file size (no minimum restriction)
+        if not contents:
+            return {"error": "Uploaded file is empty"}
+
         # Save temp file
+        import tempfile
         temp = tempfile.NamedTemporaryFile(delete=False)
-        temp.write(await file.read())
+        temp.write(contents)
         temp.close()
 
         df = pd.read_csv(temp.name)
 
         # -----------------------------
-        # SAFE DATE DETECTION
+        # DATE DETECTION
         # -----------------------------
         date_col = None
-
         for col in df.columns:
             if "date" in col.lower():
                 try:
@@ -126,26 +132,27 @@ async def upload_file(file: UploadFile = File(...)):
                     continue
 
         if date_col is None:
-            return {"error": "No valid date column found (column should contain 'date')"}
+            return {"error": "No date column found"}
 
         df["date"] = df[date_col]
 
         # -----------------------------
-        # SAFE REVENUE CREATION
+        # NUMERIC HANDLING
         # -----------------------------
         numeric_cols = df.select_dtypes(include="number").columns
 
         if len(numeric_cols) == 0:
-            return {"error": "No numeric columns found in dataset"}
+            return {"error": "No numeric columns found"}
 
         if "revenue" not in df.columns:
             df["revenue"] = df[numeric_cols].sum(axis=1)
-        
+
+        # Optional fallback
         if "sales" not in df.columns:
             df["sales"] = df["revenue"]
-            
+
         if "profit" not in df.columns:
-            df["profit"] = df["revenue"] * 0.2 
+            df["profit"] = df["revenue"] * 0.2
 
         # -----------------------------
         # PIPELINE
@@ -163,6 +170,16 @@ async def upload_file(file: UploadFile = File(...)):
             "kpis": kpis.head(20).to_dict(orient="records"),
             "insights": insights
         }
+
+    except Exception as e:
+        import traceback
+        return {
+            "error": str(e),
+            "trace": traceback.format_exc()
+        }
+        # -----------------------------
+        # PIPELINE
+        # -----------------------------
 
     except Exception as e:
         return {
