@@ -1,15 +1,12 @@
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import os
 import ast
-import tempfile
-import traceback
-
 
 app = FastAPI(
     title="Business Decision Intelligence API",
-    version="2.1.0"
+    version="1.0.0"
 )
 
 app.add_middleware(
@@ -59,7 +56,7 @@ def load_insights():
 def root():
     return {
         "message": "Business Decision Intelligence API",
-        "endpoints": ["/insights", "/kpis", "/health", "/upload"]
+        "endpoints": ["/insights", "/kpis", "/health"]
     }
 
 
@@ -96,92 +93,3 @@ def get_kpis():
         return df.to_dict(orient="records")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# -----------------------------
-# 🔥 UPLOAD DATASET (FIXED)
-# -----------------------------
-@app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    try:
-        contents = await file.read()
-
-        # ✅ Allow ANY file size (no minimum restriction)
-        if not contents:
-            return {"error": "Uploaded file is empty"}
-
-        # Save temp file
-        import tempfile
-        temp = tempfile.NamedTemporaryFile(delete=False)
-        temp.write(contents)
-        temp.close()
-
-        df = pd.read_csv(temp.name)
-
-        # -----------------------------
-        # DATE DETECTION
-        # -----------------------------
-        date_col = None
-        for col in df.columns:
-            if "date" in col.lower():
-                try:
-                    df[col] = pd.to_datetime(df[col])
-                    date_col = col
-                    break
-                except:
-                    continue
-
-        if date_col is None:
-            return {"error": "No date column found"}
-
-        df["date"] = df[date_col]
-
-        # -----------------------------
-        # NUMERIC HANDLING
-        # -----------------------------
-        numeric_cols = df.select_dtypes(include="number").columns
-
-        if len(numeric_cols) == 0:
-            return {"error": "No numeric columns found"}
-
-        if "revenue" not in df.columns:
-            df["revenue"] = df[numeric_cols].sum(axis=1)
-
-        # Optional fallback
-        if "sales" not in df.columns:
-            df["sales"] = df["revenue"]
-
-        if "profit" not in df.columns:
-            df["profit"] = df["revenue"] * 0.2
-
-        # -----------------------------
-        # PIPELINE
-        # -----------------------------
-        from src.kpi_calculator import compute_daily_kpis
-        from src.anomaly_detector import detect_anomalies
-        from src.insight_engine import generate_business_insights
-
-        kpis = compute_daily_kpis(df)
-        kpis = detect_anomalies(kpis, "revenue")
-
-        insights = generate_business_insights(kpis)
-
-        return {
-            "kpis": kpis.head(20).to_dict(orient="records"),
-            "insights": insights
-        }
-
-    except Exception as e:
-        import traceback
-        return {
-            "error": str(e),
-            "trace": traceback.format_exc()
-        }
-        # -----------------------------
-        # PIPELINE
-        # -----------------------------
-
-    except Exception as e:
-        return {
-            "error": str(e),
-            "trace": traceback.format_exc()}

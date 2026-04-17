@@ -16,101 +16,113 @@ st.set_page_config(
 # HEADER
 # -----------------------------
 st.title("📊 Business Decision Intelligence Engine")
-st.markdown("Upload your dataset and generate KPIs & insights instantly.")
+st.markdown(
+    """
+    Executive dashboard for KPI monitoring, anomaly detection,
+    forecasting, and automated business decision insights.
+    """
+)
 
 st.divider()
 
 # -----------------------------
-# FILE UPLOAD
+# FETCH DATA
 # -----------------------------
-st.subheader("📂 Upload Dataset")
+@st.cache_data(show_spinner=False)
+def fetch_kpis():
+    response = requests.get(f"{API_BASE_URL}/kpis", timeout=10)
+    response.raise_for_status()
+    return pd.DataFrame(response.json())
 
-st.info("""
-Upload a CSV file with:
-- A date column (e.g., InvoiceDate)
-- Numeric columns (sales, revenue, etc.)
 
-We automatically detect KPIs and generate insights.
-""")
+@st.cache_data(show_spinner=False)
+def fetch_insights():
+    response = requests.get(f"{API_BASE_URL}/insights", timeout=10)
+    response.raise_for_status()
+    return response.json()
 
-uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
-
-if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
-
-    st.success("File uploaded successfully!")
-    st.subheader("📄 Data Preview")
-    st.dataframe(df.head())
-
-    # -----------------------------
-    # GENERATE INSIGHTS
-    # -----------------------------
-    if st.button("🚀 Generate Insights"):
-        with st.spinner("Processing dataset..."):
-
-            try:
-                response = requests.post(
-                    f"{API_BASE_URL}/upload",
-                    files={"file": uploaded_file.getvalue()})
-                try:
-                    result = response.json()
-                except:
-                    st.error("Backend returned invalid response")
-                    st.text(response.text)
-                    st.stop()
-
-                if response.status_code == 200:
-
-                    if "error" in result:
-                        st.error(result["error"])
-                    else:
-                        st.success("Insights generated!")
-
-                        # KPIs
-                        st.subheader("📊 KPIs")
-                        kpi_df = pd.DataFrame(result["kpis"])
-                        st.dataframe(kpi_df)
-
-                        if "revenue" in kpi_df.columns:
-                            st.line_chart(kpi_df["revenue"])
-
-                        # Insights
-                        st.subheader("🧠 Insights")
-                        for ins in result["insights"]:
-                            st.markdown(f"- {ins}")
-
-                else:
-                    st.error(f"Server Error: {result}")
-
-            except Exception as e:
-                st.error(f"Error: {str(e)}")
-
-st.divider()
 
 # -----------------------------
-# LIVE DASHBOARD (OPTIONAL)
+# LOAD DATA
 # -----------------------------
-st.subheader("📈 Live System Dashboard")
-
 try:
-    kpi_df = pd.DataFrame(requests.get(f"{API_BASE_URL}/kpis").json())
-    insights = requests.get(f"{API_BASE_URL}/insights").json()
-
-    if not kpi_df.empty:
-        kpi_df["date"] = pd.to_datetime(kpi_df["date"])
-        kpi_df = kpi_df.sort_values("date")
-
-        st.line_chart(kpi_df.set_index("date")[["revenue"]])
-
-    st.subheader("🚨 Insights")
-
-    for item in insights[:5]:
-        st.write(item["insight"])
+    with st.spinner("Loading data..."):
+        kpi_df = fetch_kpis()
+        insights = fetch_insights()
 
 except Exception as e:
-    st.warning("Live backend data not available")
+    st.error("❌ Could not connect to backend")
+    st.code(str(e))
+    st.stop()
+
+
+# -----------------------------
+# KPI TREND
+# -----------------------------
+st.subheader("📈 KPI Trends")
+
+kpi_df["date"] = pd.to_datetime(kpi_df["date"])
+kpi_df = kpi_df.sort_values("date")
+
+st.line_chart(
+    kpi_df.set_index("date")[["revenue", "orders", "customers"]]
+)
+
+st.divider()
+
+# -----------------------------
+# FILTERS
+# -----------------------------
+st.sidebar.header("🔎 Filters")
+
+risk_filter = st.sidebar.multiselect(
+    "Select Risk Level",
+    options=["HIGH", "MEDIUM", "LOW"],
+    default=["HIGH", "MEDIUM"]
+)
+
+# -----------------------------
+# INSIGHTS
+# -----------------------------
+st.subheader("🚨 Business Decision Insights")
+
+filtered_insights = [
+    i for i in insights if i["risk_level"] in risk_filter
+]
+
+if not filtered_insights:
+    st.info("No insights match selected filters.")
+else:
+    for item in filtered_insights:
+        risk = item["risk_level"]
+
+        if risk == "HIGH":
+            st.error(f"🔴 HIGH — {item['date']}")
+        elif risk == "MEDIUM":
+            st.warning(f"🟠 MEDIUM — {item['date']}")
+        else:
+            st.success(f"🟢 LOW — {item['date']}")
+
+        st.markdown(item["insight"])
+
+        st.caption(
+            f"Confidence: {int(item['confidence_score']*100)}% | "
+            f"Valid until: {item['valid_until']}"
+        )
+
+        st.markdown("**Recommended Actions:**")
+
+        for act in item["recommended_actions"]:
+            st.markdown(
+                f"- **{act['team']}** ({act['priority']}) → {act['action']}"
+            )
+
+        st.divider()
+
 
 # -----------------------------
 # FOOTER
 # -----------------------------
-st.caption("Built with FastAPI • Streamlit • Data Science")
+st.caption(
+    "Business Decision Intelligence Engine | FastAPI • Streamlit • Data Science"
+)
