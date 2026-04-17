@@ -4,6 +4,8 @@ import pandas as pd
 import os
 import ast
 import tempfile
+import traceback
+
 
 app = FastAPI(
     title="Business Decision Intelligence API",
@@ -138,6 +140,12 @@ async def upload_file(file: UploadFile = File(...)):
 
         if "revenue" not in df.columns:
             df["revenue"] = df[numeric_cols].sum(axis=1)
+        
+        if "sales" not in df.columns:
+            df["sales"] = df["revenue"]
+            
+        if "profit" not in df.columns:
+            df["profit"] = df["revenue"] * 0.2 
 
         # -----------------------------
         # PIPELINE
@@ -157,4 +165,6 @@ async def upload_file(file: UploadFile = File(...)):
         }
 
     except Exception as e:
-        return {"error": str(e)}
+        return {
+            "error": str(e),
+            "trace": traceback.format_exc()}

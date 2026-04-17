@@ -51,10 +51,13 @@ if uploaded_file is not None:
             try:
                 response = requests.post(
                     f"{API_BASE_URL}/upload",
-                    files={"file": uploaded_file.getvalue()}
-                )
-
-                result = response.json()
+                    files={"file": uploaded_file.getvalue()})
+                try:
+                    result = response.json()
+                except:
+                    st.error("Backend returned invalid response")
+                    st.text(response.text)
+                    st.stop()
 
                 if response.status_code == 200:
 
@@ -77,7 +80,7 @@ if uploaded_file is not None:
                             st.markdown(f"- {ins}")
 
                 else:
-                    st.error(result)
+                    st.error(f"Server Error: {result}")
 
             except Exception as e:
                 st.error(f"Error: {str(e)}")
