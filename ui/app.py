@@ -8,19 +8,22 @@ import pandas as pd
 API_BASE_URL = "https://business-decision-intelligence-engine.onrender.com"
 
 st.set_page_config(
-    page_title="Business Decision Intelligence Engine",
-    layout="wide"
+    page_title="Business Intelligence Engine",
+    layout="wide",
+    page_icon="📊"
 )
 
 # -----------------------------
 # HEADER
 # -----------------------------
-st.title("📊 Business Decision Intelligence Engine")
 st.markdown(
     """
-    Executive dashboard for KPI monitoring, anomaly detection,
-    forecasting, and automated business decision insights.
-    """
+    <h1 style='margin-bottom:0;'>📊 Business Intelligence Engine</h1>
+    <p style='color:gray; margin-top:0;'>
+    Real-time KPI monitoring • Risk detection • Decision insights
+    </p>
+    """,
+    unsafe_allow_html=True
 )
 
 st.divider()
@@ -30,99 +33,128 @@ st.divider()
 # -----------------------------
 @st.cache_data(show_spinner=False)
 def fetch_kpis():
-    response = requests.get(f"{API_BASE_URL}/kpis", timeout=10)
-    response.raise_for_status()
-    return pd.DataFrame(response.json())
-
+    res = requests.get(f"{API_BASE_URL}/kpis", timeout=10)
+    res.raise_for_status()
+    return pd.DataFrame(res.json())
 
 @st.cache_data(show_spinner=False)
 def fetch_insights():
-    response = requests.get(f"{API_BASE_URL}/insights", timeout=10)
-    response.raise_for_status()
-    return response.json()
-
+    res = requests.get(f"{API_BASE_URL}/insights", timeout=10)
+    res.raise_for_status()
+    return res.json()
 
 # -----------------------------
 # LOAD DATA
 # -----------------------------
 try:
-    with st.spinner("Loading data..."):
+    with st.spinner("Loading dashboard..."):
         kpi_df = fetch_kpis()
         insights = fetch_insights()
-
 except Exception as e:
-    st.error("❌ Could not connect to backend")
+    st.error("Backend connection failed")
     st.code(str(e))
     st.stop()
 
-
 # -----------------------------
-# KPI TREND
+# PREP DATA
 # -----------------------------
-st.subheader("📈 KPI Trends")
-
 kpi_df["date"] = pd.to_datetime(kpi_df["date"])
 kpi_df = kpi_df.sort_values("date")
 
+latest = kpi_df.iloc[-1]
+
+# -----------------------------
+# KPI CARDS (PRODUCT STYLE)
+# -----------------------------
+st.subheader("📌 Key Metrics")
+
+col1, col2, col3 = st.columns(3)
+
+col1.metric("Revenue", f"{latest['revenue']:,.0f}")
+col2.metric("Orders", f"{latest['orders']:,.0f}")
+col3.metric("Customers", f"{latest['customers']:,.0f}")
+
+st.divider()
+
+# -----------------------------
+# CHART
+# -----------------------------
+st.subheader("📈 Revenue Trend")
+
 st.line_chart(
-    kpi_df.set_index("date")[["revenue", "orders", "customers"]]
+    kpi_df.set_index("date")[["revenue"]],
+    use_container_width=True
 )
 
 st.divider()
 
 # -----------------------------
-# FILTERS
+# SIDEBAR FILTER
 # -----------------------------
 st.sidebar.header("🔎 Filters")
 
 risk_filter = st.sidebar.multiselect(
-    "Select Risk Level",
-    options=["HIGH", "MEDIUM", "LOW"],
-    default=["HIGH", "MEDIUM"]
+    "Risk Level",
+    ["HIGH", "MEDIUM", "LOW"],
+    default=["HIGH", "MEDIUM", "LOW"]
 )
 
 # -----------------------------
-# INSIGHTS
+# INSIGHTS SECTION
 # -----------------------------
-st.subheader("🚨 Business Decision Insights")
+st.subheader("🚨 Decision Insights")
 
-filtered_insights = [
-    i for i in insights if i["risk_level"] in risk_filter
-]
+filtered = [i for i in insights if i["risk_level"] in risk_filter]
 
-if not filtered_insights:
-    st.info("No insights match selected filters.")
+if not filtered:
+    st.info("No insights available")
 else:
-    for item in filtered_insights:
-        risk = item["risk_level"]
+    for item in filtered:
 
-        if risk == "HIGH":
-            st.error(f"🔴 HIGH — {item['date']}")
-        elif risk == "MEDIUM":
-            st.warning(f"🟠 MEDIUM — {item['date']}")
+        # Color coding
+        if item["risk_level"] == "HIGH":
+            color = "#ff4b4b"
+            label = "🔴 HIGH RISK"
+        elif item["risk_level"] == "MEDIUM":
+            color = "#ffa500"
+            label = "🟠 MEDIUM RISK"
         else:
-            st.success(f"🟢 LOW — {item['date']}")
+            color = "#2ecc71"
+            label = "🟢 LOW RISK"
 
-        st.markdown(item["insight"])
-
-        st.caption(
-            f"Confidence: {int(item['confidence_score']*100)}% | "
-            f"Valid until: {item['valid_until']}"
+        # Card UI
+        st.markdown(
+            f"""
+            <div style="
+                border-left:6px solid {color};
+                padding:15px;
+                border-radius:10px;
+                margin-bottom:15px;
+                background-color:#111;
+            ">
+                <h4>{label} — {item['date']}</h4>
+                <p>{item['insight']}</p>
+                <p style='color:gray; font-size:12px;'>
+                    Confidence: {int(item['confidence_score']*100)}% |
+                    Valid till: {item['valid_until']}
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
-        st.markdown("**Recommended Actions:**")
+        # Actions
+        with st.expander("📌 Recommended Actions"):
+            for act in item["recommended_actions"]:
+                st.markdown(
+                    f"- **{act['team']}** ({act['priority']}) → {act['action']}"
+                )
 
-        for act in item["recommended_actions"]:
-            st.markdown(
-                f"- **{act['team']}** ({act['priority']}) → {act['action']}"
-            )
-
-        st.divider()
-
+st.divider()
 
 # -----------------------------
 # FOOTER
 # -----------------------------
 st.caption(
-    "Business Decision Intelligence Engine | FastAPI • Streamlit • Data Science"
+    "Built with FastAPI • Streamlit • Data Science • Decision Intelligence"
 )

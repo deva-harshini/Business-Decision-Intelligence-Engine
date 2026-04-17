@@ -1,15 +1,8 @@
 """
 Production Pipeline Script
 Business Decision Intelligence Engine
-
-Runs end-to-end:
-Raw Data → KPIs → Anomaly Detection → Forecasting
-→ Confidence + Audit → Business Action Recommendations
 """
 
-# ============================================================
-# PATH SETUP
-# ============================================================
 import sys
 import os
 
@@ -17,15 +10,9 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-# ============================================================
-# STANDARD IMPORTS
-# ============================================================
 import pandas as pd
 from datetime import datetime
 
-# ============================================================
-# PROJECT IMPORTS
-# ============================================================
 from src.kpi_calculator import compute_daily_kpis
 from src.anomaly_detector import detect_anomalies
 from src.forecasting import forecast_kpi
@@ -38,72 +25,45 @@ from src.insight_engine import (
 )
 from src.action_engine import recommend_actions
 
-# ============================================================
-# CONFIGURATION
-# ============================================================
 RAW_DATA_PATH = "data/raw/online_retail.csv"
 CLEAN_DATA_PATH = "data/processed/cleaned_transactions.csv"
 
 KPI_DIR = "data/kpi"
 KPI_PATH = f"{KPI_DIR}/daily_kpis.csv"
-INCIDENT_PATH = f"{KPI_DIR}/revenue_incidents.csv"
-FORECAST_PATH = f"{KPI_DIR}/revenue_forecast.csv"
 INSIGHTS_PATH = f"{KPI_DIR}/decision_insights.csv"
 
 WINDOW = 7
 Z_THRESHOLD = 2
 FORECAST_DAYS = 14
 
-# ============================================================
-# UTILITIES
-# ============================================================
+
 def ensure_directories():
     os.makedirs("data/processed", exist_ok=True)
     os.makedirs(KPI_DIR, exist_ok=True)
 
-# ============================================================
-# PIPELINE
-# ============================================================
-def main():
-    print("🚀 Starting Business Decision Intelligence Pipeline")
-    print(f"🕒 Run time: {datetime.now().isoformat()}")
 
-    print("Step 1: Loading data...")
-    print("Step 2: Cleaning data...")
-    print("Step 3: Computing KPIs...")
-    print("Step 4: Detecting anomalies...")
-    print("Step 5: Forecasting trends...")
-    print("Step 6: Generating insights & actions...")
+def main():
+    print("🚀 Running pipeline...")
 
     ensure_directories()
 
-    # --------------------------------------------------------
-    # 1. LOAD RAW DATA
-    # --------------------------------------------------------
+    # Load data
     df = pd.read_csv(RAW_DATA_PATH, encoding="ISO-8859-1")
 
-    # --------------------------------------------------------
-    # 2. CLEAN DATA
-    # --------------------------------------------------------
     df = df.dropna(subset=["CustomerID"])
     df = df[(df["Quantity"] > 0) & (df["UnitPrice"] > 0)]
 
     df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"])
     df["Revenue"] = df["Quantity"] * df["UnitPrice"]
-    df["date"] = df["InvoiceDate"].dt.date
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["InvoiceDate"].dt.date)
 
     df.to_csv(CLEAN_DATA_PATH, index=False)
 
-    # --------------------------------------------------------
-    # 3. COMPUTE DAILY KPIs
-    # --------------------------------------------------------
+    # KPIs
     daily_kpis = compute_daily_kpis(df)
     daily_kpis.to_csv(KPI_PATH, index=False)
 
-    # --------------------------------------------------------
-    # 4. ANOMALY DETECTION
-    # --------------------------------------------------------
+    # Anomalies
     daily_kpis = detect_anomalies(
         daily_kpis,
         value_col="revenue",
@@ -111,36 +71,24 @@ def main():
         z_threshold=Z_THRESHOLD
     )
 
-    incidents = daily_kpis[daily_kpis["revenue_anomaly"]][
-        ["date", "revenue", "revenue_zscore"]
-    ].copy()
-
-    incidents.to_csv(INCIDENT_PATH, index=False)
-
-    # --------------------------------------------------------
-    # 5. FORECASTING
-    # --------------------------------------------------------
+    # Forecast
     forecast_df = forecast_kpi(
         daily_kpis,
         value_col="revenue",
         horizon=FORECAST_DAYS
     )
 
-    forecast_df.to_csv(FORECAST_PATH, index=False)
-
-    # --------------------------------------------------------
-    # 6. DECISION INTELLIGENCE
-    # --------------------------------------------------------
     baseline = float(daily_kpis["revenue"].mean())
     volatility = float(daily_kpis["revenue"].std())
 
-    # NEW: global business insights
     global_insights = generate_business_insights(daily_kpis)
 
     insights = []
 
-    for _, row in incidents.iterrows():
-        z_score = float(row["revenue_zscore"])
+    # 🔥 FIX: iterate over ALL rows (not just anomalies)
+    for _, row in daily_kpis.iterrows():
+
+        z_score = float(row.get("revenue_zscore", 0))
         future_risk = forecast_df["lower"].min() < baseline * 0.9
 
         risk_level = classify_risk(z_score, future_risk)
@@ -164,12 +112,9 @@ def main():
             "valid_until": generate_validity_date(row["date"]),
             "insight": generate_insight(row, baseline),
             "recommended_actions": actions,
-            "global_insights": global_insights,
             "audit": {
                 "baseline_revenue": round(baseline, 2),
-                "z_score": round(z_score, 2),
-                "rolling_window_days": WINDOW,
-                "forecast_horizon_days": FORECAST_DAYS
+                "z_score": round(z_score, 2)
             },
             "generated_at": datetime.now().isoformat()
         })
@@ -177,11 +122,8 @@ def main():
     insights_df = pd.DataFrame(insights)
     insights_df.to_csv(INSIGHTS_PATH, index=False)
 
-    print("✅ Pipeline completed successfully")
-    print(f"📄 Insights written to: {INSIGHTS_PATH}")
+    print("✅ Pipeline completed")
 
-# ============================================================
-# ENTRY POINT
-# ============================================================
+
 if __name__ == "__main__":
     main()
