@@ -134,7 +134,6 @@ streamlit run ui/app.py
 ---
 
 ## 📈 Key Highlights
-
 - Built an end-to-end data system, not just a model
 - Combines analytics + backend + dashboard
 - Focuses on business impact, not just accuracy
@@ -145,4 +144,5 @@ streamlit run ui/app.py
 ## 👩‍💻 Author
 
 Mandali Deva Harshini
+
 LinkedIn: https://linkedin.com/in/deva-harshini
